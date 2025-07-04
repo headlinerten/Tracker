@@ -4,8 +4,8 @@ protocol ScheduleViewControllerDelegate: AnyObject {
     func didConfirm(_ schedule: Set<DayOfWeek>)
 }
 
-class ScheduleViewController: UIViewController {
-
+final class ScheduleViewController: UIViewController {
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -33,7 +33,7 @@ class ScheduleViewController: UIViewController {
     
     weak var delegate: ScheduleViewControllerDelegate?
     private var selectedDays: Set<DayOfWeek> = []
-
+    
     @objc private func doneButtonTapped() {
         delegate?.didConfirm(selectedDays)
         navigationController?.popViewController(animated: true)
@@ -42,7 +42,7 @@ class ScheduleViewController: UIViewController {
     private func switchChanged(_ sender: UISwitch) {
         let dayIndex = sender.tag
         let day = DayOfWeek.allCases[dayIndex]
-
+        
         if sender.isOn {
             selectedDays.insert(day)
         } else {
@@ -57,7 +57,7 @@ class ScheduleViewController: UIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         return tableView
     }()
-
+    
     private lazy var doneButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Готово", for: .normal)
@@ -80,12 +80,12 @@ extension ScheduleViewController: UITableViewDataSource, UITableViewDelegate {
         let cell = UITableViewCell()
         let day = DayOfWeek.allCases[indexPath.row]
         cell.textLabel?.text = day.rawValue
-
+        
         let switchView = UISwitch(frame: .zero)
         switchView.setOn(false, animated: false)
         switchView.tag = indexPath.row // Добавляем tag, чтобы знать номер строки
         switchView.addTarget(self, action: #selector(switchChanged), for: .valueChanged)
-
+        
         cell.accessoryView = switchView
         cell.backgroundColor = UIColor(red: 0.9, green: 0.91, blue: 0.92, alpha: 0.3)
         return cell

@@ -1,6 +1,6 @@
 import UIKit
 
-class TrackersViewController: UIViewController {
+final class TrackersViewController: UIViewController {
     
     private var visibleCategories: [TrackerCategory] = []
     private var categories: [TrackerCategory] = []
@@ -32,7 +32,7 @@ class TrackersViewController: UIViewController {
         )
         
         view.addSubview(collectionView)
-
+        
         NSLayoutConstraint.activate([
             // Прикрепляем верх коллекции к низу navigationBar
             collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -48,7 +48,7 @@ class TrackersViewController: UIViewController {
         collectionView.register(TrackerCell.self, forCellWithReuseIdentifier: TrackerCell.identifier)
         
         view.addSubview(placeholderView)
-
+        
         NSLayoutConstraint.activate([
             placeholderView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             placeholderView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
@@ -64,7 +64,7 @@ class TrackersViewController: UIViewController {
             emoji: "🪴",
             schedule: [.wednesday, .friday]
         )
-
+        
         let tracker2 = Tracker(
             id: UUID(),
             name: "Читать по 15 минут",
@@ -72,7 +72,7 @@ class TrackersViewController: UIViewController {
             emoji: "📚",
             schedule: [.monday, .tuesday, .wednesday, .thursday, .friday]
         )
-
+        
         let tracker3 = Tracker(
             id: UUID(),
             name: "Сходить в зал",
@@ -80,18 +80,18 @@ class TrackersViewController: UIViewController {
             emoji: "💪",
             schedule: [.tuesday, .thursday, .saturday]
         )
-
+        
         // Создаем для них категории
         let homeCategory = TrackerCategory(
             title: "Домашние дела",
             trackers: [tracker1]
         )
-
+        
         let selfCareCategory = TrackerCategory(
             title: "Забота о себе",
             trackers: [tracker2, tracker3]
         )
-
+        
         // Заполняем наш массив-хранилище этими категориями
         self.categories = [homeCategory, selfCareCategory]
         
@@ -112,10 +112,10 @@ class TrackersViewController: UIViewController {
         let newHabitViewController = NewHabitViewController()
         
         newHabitViewController.delegate = self
-
+        
         // 2. Оборачиваем его в собственный UINavigationController
         let navigationController = UINavigationController(rootViewController: newHabitViewController)
-
+        
         // 3. Показываем новый экран модально
         present(navigationController, animated: true)
     }
@@ -149,7 +149,7 @@ class TrackersViewController: UIViewController {
         collectionView.reloadData()
         placeholderView.isHidden = !visibleCategories.isEmpty
     }
-
+    
     private func convertWeekday(_ weekday: Int) -> DayOfWeek {
         switch weekday {
         case 1: return .sunday
@@ -252,10 +252,10 @@ extension TrackersViewController: UICollectionViewDataSource {
             days: completedDays,
             indexPath: indexPath
         )
-    
+        
         return cell
     }
-
+    
     private func isSameDay(_ date1: Date, _ date2: Date) -> Bool {
         return Calendar.current.isDate(date1, inSameDayAs: date2)
     }
@@ -271,7 +271,7 @@ extension TrackersViewController: UICollectionViewDataSource {
         else {
             return UICollectionReusableView()
         }
-
+        
         view.titleLabel.text = visibleCategories[indexPath.section].title
         return view
     }
@@ -285,14 +285,14 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         let leftInset: CGFloat = 16
         let rightInset: CGFloat = 16
         let cellSpacing: CGFloat = 9
-
+        
         // Считаем доступную ширину
         let paddingWidth = leftInset + rightInset + (cellsPerRow - 1) * cellSpacing
         let availableWidth = collectionView.frame.width - paddingWidth
-
+        
         // Считаем ширину ячейки
         let cellWidth = availableWidth / cellsPerRow
-
+        
         return CGSize(width: cellWidth, height: 148)
     }
     
@@ -324,7 +324,7 @@ extension TrackersViewController: TrackerCellDelegate {
             print("Нельзя отмечать трекеры для будущих дат!")
             return // Выходим из функции, если дата в будущем
         }
-
+        
         // 2. Ищем запись о выполнении в массиве completedTrackers
         if let index = completedTrackers.firstIndex(where: { $0.trackerId == id && isSameDay($0.date, selectedDate) }) {
             // 3. Если запись найдена — удаляем ее (снимаем отметку)
@@ -334,7 +334,7 @@ extension TrackersViewController: TrackerCellDelegate {
             let newRecord = TrackerRecord(trackerId: id, date: selectedDate)
             completedTrackers.append(newRecord)
         }
-
+        
         // 5. Обновляем только одну ячейку, на которую нажали
         collectionView.reloadItems(at: [indexPath])
     }

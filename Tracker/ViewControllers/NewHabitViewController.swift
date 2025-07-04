@@ -4,7 +4,7 @@ protocol NewHabitViewControllerDelegate: AnyObject {
     func didCreateTracker(_ tracker: Tracker, categoryTitle: String)
 }
 
-class NewHabitViewController: UIViewController {
+final class NewHabitViewController: UIViewController {
     
     weak var delegate: NewHabitViewControllerDelegate?
     
@@ -51,6 +51,7 @@ class NewHabitViewController: UIViewController {
         buttonsTableView.delegate = self
         
         nameTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        nameTextField.delegate = self
     }
     
     private var schedule: Set<DayOfWeek> = []
@@ -88,8 +89,8 @@ class NewHabitViewController: UIViewController {
     }
     
     @objc private func textFieldDidChange() {
-             updateCreateButtonState()
-         }
+        updateCreateButtonState()
+    }
     
     private func updateCreateButtonState() {
         // Проверяем, что текст в поле не пустой И что расписание не пустое
@@ -154,12 +155,11 @@ class NewHabitViewController: UIViewController {
         button.isEnabled = false
         return button
     }()
-    
 }
 
 extension NewHabitViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 2 // У нас две "кнопки": Категория и Расписание
+        2 // У нас две "кнопки": Категория и Расписание
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -172,20 +172,25 @@ extension NewHabitViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true) // Снимаем выделение
-        if indexPath.row == 1 {
-            if indexPath.row == 1 { // Убеждаемся, что это кнопка "Расписание"
-                let scheduleViewController = ScheduleViewController()
-                scheduleViewController.delegate = self
-                navigationController?.pushViewController(scheduleViewController, animated: true)
-            }
-        }
+        
+        guard indexPath.row == 1 else { return }
+        
+        let scheduleViewController = ScheduleViewController()
+        scheduleViewController.delegate = self
+        navigationController?.pushViewController(scheduleViewController, animated: true)
     }
 }
 
 extension NewHabitViewController: ScheduleViewControllerDelegate {
     func didConfirm(_ schedule: Set<DayOfWeek>) {
         self.schedule = schedule
-        print("Выбранные дни: \(self.schedule)")
         updateCreateButtonState()
+    }
+}
+
+extension NewHabitViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
     }
 }

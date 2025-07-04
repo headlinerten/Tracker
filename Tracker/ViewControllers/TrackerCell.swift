@@ -7,7 +7,7 @@ protocol TrackerCellDelegate: AnyObject {
 final class TrackerCell: UICollectionViewCell {
     
     weak var delegate: TrackerCellDelegate?
-
+    
     private var isCompleted: Bool = false
     private var trackerId: UUID?
     private var indexPath: IndexPath?
@@ -21,7 +21,7 @@ final class TrackerCell: UICollectionViewCell {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-
+    
     // Лейбл для эмодзи
     private let emojiLabel: UILabel = {
         let label = UILabel()
@@ -29,7 +29,7 @@ final class TrackerCell: UICollectionViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-
+    
     // Лейбл для названия трекера
     private let nameLabel: UILabel = {
         let label = UILabel()
@@ -39,7 +39,7 @@ final class TrackerCell: UICollectionViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-
+    
     // Лейбл для счетчика дней
     private let counterLabel: UILabel = {
         let label = UILabel()
@@ -48,7 +48,7 @@ final class TrackerCell: UICollectionViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-
+    
     // Кнопка "+" для отметки выполнения
     private let plusButton: UIButton = {
         let button = UIButton(type: .system)
@@ -65,7 +65,7 @@ final class TrackerCell: UICollectionViewCell {
     
     override init(frame: CGRect) {
         super.init(frame: frame)
-                
+        
         contentView.addSubview(colorView)
         colorView.addSubview(emojiLabel)
         colorView.addSubview(nameLabel)
@@ -102,7 +102,7 @@ final class TrackerCell: UICollectionViewCell {
         ])
         
         plusButton.addTarget(self, action: #selector(plusButtonTapped), for: .touchUpInside)
-
+        
     }
     
     required init?(coder: NSCoder) {
