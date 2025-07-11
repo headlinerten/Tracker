@@ -10,6 +10,7 @@ final class ScheduleViewController: UIViewController {
         super.viewDidLoad()
         
         title = "Расписание"
+        navigationItem.hidesBackButton = true
         view.backgroundColor = .white
         
         view.addSubview(daysTableView)

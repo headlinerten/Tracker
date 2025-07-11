@@ -18,4 +18,11 @@ final class TrackerStore {
         trackerCoreData.category = category
         
         try context.save()
-    }}
+    }
+    
+    func fetchTracker(with id: UUID) -> TrackerCoreData? {
+        let request = NSFetchRequest<TrackerCoreData>(entityName: "TrackerCoreData")
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        return try? context.fetch(request).first
+    }
+}

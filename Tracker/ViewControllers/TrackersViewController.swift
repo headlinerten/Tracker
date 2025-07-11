@@ -2,18 +2,28 @@ import UIKit
 
 final class TrackersViewController: UIViewController {
     
-    // Новые свойства для работы с Core Data
+    // MARK: - Core Data Stores
+    
     private var trackerStore: TrackerStore?
     private var categoryStore: TrackerCategoryStore?
-    private var recordStore: TrackerRecordStore?
+    private var recordStore: TrackerRecordStoreProtocol?
     
-    // Свойства для UI
+    // MARK: - Properties
+    
+    private var visibleCategories: [TrackerCategory] = []
+    private var completedRecords: Set<TrackerRecord> = []
+    private var currentDate: Date = Date()
+    
+    // MARK: - UI Elements
+    
     private lazy var datePicker: UIDatePicker = {
         let picker = UIDatePicker()
         picker.datePickerMode = .date
         picker.preferredDatePickerStyle = .compact
         picker.locale = Locale(identifier: "ru_RU")
         picker.addTarget(self, action: #selector(datePickerValueChanged), for: .valueChanged)
+        // Нельзя выбрать будущую дату
+        picker.maximumDate = Date()
         return picker
     }()
     
@@ -59,8 +69,9 @@ final class TrackersViewController: UIViewController {
         setupDelegates()
         setupStores()
         
-        // Временная заглушка, пока нет данных из Core Data
-        placeholderView.isHidden = false
+        // Устанавливаем текущую дату и обновляем данные
+        currentDate = datePicker.date
+        reloadVisibleCategories()
     }
     
     // MARK: - Private Methods
@@ -85,6 +96,7 @@ final class TrackersViewController: UIViewController {
             selectedImage: nil
         )
         
+        view.backgroundColor = .white
         view.addSubview(collectionView)
         view.addSubview(placeholderView)
         
@@ -115,11 +127,48 @@ final class TrackersViewController: UIViewController {
         guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return }
         let context = appDelegate.persistentContainer.viewContext
         
-        trackerStore = TrackerStore(context: context)
+        let localTrackerStore = TrackerStore(context: context)
+        trackerStore = localTrackerStore
+        
         categoryStore = TrackerCategoryStore(context: context)
         categoryStore?.delegate = self
-        recordStore = TrackerRecordStore(context: context)
+        
+        recordStore = TrackerRecordStore(context: context, trackerStore: localTrackerStore)
     }
+    
+    private func reloadVisibleCategories() {
+        let calendar = Calendar.current
+        // Убираем время из currentDate, чтобы сравнение было только по дате
+        let filterDate = calendar.startOfDay(for: currentDate)
+        let filterWeekday = calendar.component(.weekday, from: filterDate)
+        
+        // Обновляем список выполненных записей
+        completedRecords = Set(recordStore?.records ?? [])
+        
+        visibleCategories = categoryStore?.categories.compactMap { category in
+            let trackers = category.trackers.filter { tracker in
+                // Проверяем, что трекер запланирован на выбранный день недели
+                let scheduleContainsDay = tracker.schedule.contains { dayOfWeek in
+                    // 1 = Вс, 2 = Пн, ..., 7 = Сб
+                    // Наш enum: Пн = 0 ... Вс = 6
+                    let calendarDayIndex = dayOfWeek.calendarDayIndex()
+                    return calendarDayIndex == filterWeekday
+                }
+                return scheduleContainsDay
+            }
+            
+            if trackers.isEmpty {
+                return nil
+            }
+            
+            return TrackerCategory(title: category.title, trackers: trackers)
+        } ?? []
+        
+        collectionView.reloadData()
+        placeholderView.isHidden = !visibleCategories.isEmpty
+    }
+    
+    // MARK: - Actions
     
     @objc private func addButtonTapped() {
         let newHabitViewController = NewHabitViewController()
@@ -129,8 +178,8 @@ final class TrackersViewController: UIViewController {
     }
     
     @objc private func datePickerValueChanged() {
-        // Логику фильтрации добавим, когда будем получать данные из Core Data
-        collectionView.reloadData()
+        currentDate = datePicker.date
+        reloadVisibleCategories()
     }
 }
 
@@ -138,18 +187,29 @@ final class TrackersViewController: UIViewController {
 
 extension TrackersViewController: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return categoryStore?.categories.count ?? 0
+        return visibleCategories.count
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return categoryStore?.categories[section].trackers.count ?? 0
+        return visibleCategories[section].trackers.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TrackerCell.identifier, for: indexPath) as? TrackerCell else {
             return UICollectionViewCell()
         }
+        
+        let tracker = visibleCategories[indexPath.section].trackers[indexPath.row]
+        
+        // Проверяем, выполнена ли задача на ТЕКУЩУЮ выбранную дату
+        let isCompleted = completedRecords.contains { $0.trackerId == tracker.id && Calendar.current.isDate($0.date, inSameDayAs: currentDate) }
+        
+        // Считаем общее количество выполнений для этого трекера
+        let daysCount = completedRecords.filter { $0.trackerId == tracker.id }.count
+        
         cell.delegate = self
+        cell.configure(with: tracker, isCompleted: isCompleted, days: daysCount, indexPath: indexPath)
+        
         return cell
     }
     
@@ -157,7 +217,8 @@ extension TrackersViewController: UICollectionViewDataSource {
         guard let view = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: TrackerCategoryHeader.identifier, for: indexPath) as? TrackerCategoryHeader else {
             return UICollectionReusableView()
         }
-        view.titleLabel.text = categoryStore?.categories[indexPath.section].title
+        
+        view.titleLabel.text = visibleCategories[indexPath.section].title
         return view
     }
 }
@@ -165,6 +226,7 @@ extension TrackersViewController: UICollectionViewDataSource {
 // MARK: - UICollectionViewDelegateFlowLayout
 
 extension TrackersViewController: UICollectionViewDelegateFlowLayout {
+    // ... (весь код этого расширения остается без изменений)
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let cellsPerRow: CGFloat = 2
         let leftInset: CGFloat = 16
@@ -198,34 +260,85 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
 // MARK: - Delegate Implementations
 
 extension TrackersViewController: TrackerCellDelegate {
+
     func completeTracker(id: UUID, at indexPath: IndexPath) {
+        print("--- Кнопка нажата! ID трекера: \(id) ---")
+        let calendar = Calendar.current
+        
+        // 1. Проверяем, что дата не в будущем
+        if calendar.compare(currentDate, to: Date(), toGranularity: .day) == .orderedDescending {
+            return
+        }
+        
+        // 2. Получаем дату с обнулённым временем
+        let dateOnly = calendar.startOfDay(for: currentDate)
+        
+        // 3. Создаём запись, которую будем добавлять или удалять, используя ТОЛЬКО ДАТУ
+        let record = TrackerRecord(trackerId: id, date: dateOnly)
+        
+        // 4. Выполняем или отменяем выполнение трекера
+        if completedRecords.contains(record) {
+            // Если уже выполнен -> удаляем запись
+            recordStore?.deleteRecord(for: id, on: dateOnly) { [weak self] error in
+                guard let self = self else { return }
+                if let error {
+                    print("Ошибка удаления записи: \(error)")
+                    return
+                }
+                self.completedRecords.remove(record)
+                self.collectionView.reloadItems(at: [indexPath])
+            }
+        } else {
+            // Если не выполнен -> добавляем запись
+            recordStore?.addRecord(for: id, on: dateOnly) { [weak self] error in
+                guard let self = self else { return }
+                if let error {
+                    print("Ошибка добавления записи: \(error)")
+                    return
+                }
+                self.completedRecords.insert(record)
+                self.collectionView.reloadItems(at: [indexPath])
+            }
+        }
     }
 }
 
 extension TrackersViewController: NewHabitViewControllerDelegate {
+    // ... (этот метод остается без изменений)
     func didCreateTracker(_ tracker: Tracker, categoryTitle: String) {
         guard let categoryStore = self.categoryStore else { return }
         
-        // 1. Пытаемся найти категорию с нужным названием
         let category: TrackerCategoryCoreData
         if let existingCategory = categoryStore.fetchCategory(with: categoryTitle) {
             category = existingCategory
         } else {
-            // 2. Если не нашли, создаем новую
             guard let newCategory = try? categoryStore.createCategory(with: categoryTitle) else {
-                // Здесь можно обработать ошибку, если не удалось создать категорию
                 return
             }
             category = newCategory
         }
         
-        // 3. Создаем трекер и связываем его с категорией
         try? trackerStore?.createTracker(tracker, in: category)
     }
 }
 
 extension TrackersViewController: TrackerCategoryStoreDelegate {
     func storeDidUpdate() {
-        collectionView.reloadData()
+        reloadVisibleCategories()
+    }
+}
+
+// Добавим хелпер для DayOfWeek, чтобы было проще работать с Calendar
+extension DayOfWeek {
+    func calendarDayIndex() -> Int {
+        switch self {
+        case .monday: return 2
+        case .tuesday: return 3
+        case .wednesday: return 4
+        case .thursday: return 5
+        case .friday: return 6
+        case .saturday: return 7
+        case .sunday: return 1
+        }
     }
 }

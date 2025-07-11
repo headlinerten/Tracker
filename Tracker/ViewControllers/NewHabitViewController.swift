@@ -72,7 +72,7 @@ final class NewHabitViewController: UIViewController {
             emojiCollectionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             emojiCollectionView.heightAnchor.constraint(equalToConstant: 204),
             
-            colorHeaderLabel.topAnchor.constraint(equalTo: emojiCollectionView.bottomAnchor, constant: 32),
+            colorHeaderLabel.topAnchor.constraint(equalTo: emojiCollectionView.bottomAnchor, constant: 0),
             colorHeaderLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 28),
             colorCollectionView.topAnchor.constraint(equalTo: colorHeaderLabel.bottomAnchor, constant: 24),
             colorCollectionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -177,8 +177,13 @@ final class NewHabitViewController: UIViewController {
     private lazy var buttonsTableView: UITableView = {
         let tableView = UITableView()
         tableView.layer.cornerRadius = 16
+        tableView.separatorStyle = .singleLine
+        tableView.clipsToBounds = true
+        tableView.isScrollEnabled = false
         tableView.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
+        tableView.tableHeaderView = UIView(frame: .zero)
         tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.backgroundColor = .clear
         return tableView
     }()
     
@@ -290,9 +295,36 @@ extension NewHabitViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = UITableViewCell()
         cell.textLabel?.text = indexPath.row == 0 ? "Категория" : "Расписание"
-        cell.accessoryType = .disclosureIndicator // Стрелочка справа
+        cell.accessoryType = .disclosureIndicator
+        
+        // Устанавливаем серый фон для ячейки
         cell.backgroundColor = UIColor(red: 0.9, green: 0.91, blue: 0.92, alpha: 0.3)
+        
+        // Настраиваем скругления для первой и последней ячейки
+        if indexPath.row == 0 {
+            // Первая ячейка - скругляем только верхние углы
+            cell.layer.cornerRadius = 16
+            cell.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        } else if indexPath.row == 1 {
+            // Последняя ячейка - скругляем только нижние углы
+            cell.layer.cornerRadius = 16
+            cell.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        }
+        
+        // Убираем выделение при нажатии
+        cell.selectionStyle = .none
+        
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 75
+    }
+    
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if indexPath.row == 1 { // Последняя ячейка (Расписание)
+            cell.separatorInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: .greatestFiniteMagnitude)
+        }
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
