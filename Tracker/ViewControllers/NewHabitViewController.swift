@@ -293,146 +293,167 @@ extension NewHabitViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell()
-        cell.textLabel?.text = indexPath.row == 0 ? "Категория" : "Расписание"
+        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: nil)
         cell.accessoryType = .disclosureIndicator
-        
-        // Устанавливаем серый фон для ячейки
         cell.backgroundColor = UIColor(red: 0.9, green: 0.91, blue: 0.92, alpha: 0.3)
-        
-        // Настраиваем скругления для первой и последней ячейки
-        if indexPath.row == 0 {
-            // Первая ячейка - скругляем только верхние углы
-            cell.layer.cornerRadius = 16
-            cell.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        } else if indexPath.row == 1 {
-            // Последняя ячейка - скругляем только нижние углы
-            cell.layer.cornerRadius = 16
-            cell.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
-        }
-        
-        // Убираем выделение при нажатии
         cell.selectionStyle = .none
         
-        return cell
-    }
-    
-    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 75
-    }
-    
-    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-        if indexPath.row == 1 { // Последняя ячейка (Расписание)
-            cell.separatorInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: .greatestFiniteMagnitude)
-        }
-    }
-    
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true) // Снимаем выделение
-        
-        guard indexPath.row == 1 else { return }
-        
-        let scheduleViewController = ScheduleViewController()
-        scheduleViewController.delegate = self
-        navigationController?.pushViewController(scheduleViewController, animated: true)
-    }
-}
-
-extension NewHabitViewController: ScheduleViewControllerDelegate {
-    func didConfirm(_ schedule: Set<DayOfWeek>) {
-        self.schedule = schedule
-        updateCreateButtonState()
-    }
-}
-
-extension NewHabitViewController: UITextFieldDelegate {
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        textField.resignFirstResponder()
-        return true
-    }
-}
-
-extension NewHabitViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        if collectionView == emojiCollectionView {
-            return emojis.count
-        } else if collectionView == colorCollectionView {
-            return colors.count
-        }
-        return 0
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        if collectionView == emojiCollectionView {
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: EmojiCell.identifier, for: indexPath) as? EmojiCell else {
-                return UICollectionViewCell()
+        if indexPath.row == 0 {
+            cell.textLabel?.text = "Категория"
+        } else {
+            cell.textLabel?.text = "Расписание"
+            if !schedule.isEmpty {
+                let sortedSchedule = schedule.sorted { day1, day2 in
+                    guard let index1 = DayOfWeek.allCases.firstIndex(of: day1),
+                          let index2 = DayOfWeek.allCases.firstIndex(of: day2) else {
+                        return false
+                    }
+                    return index1 < index2
+                }
+                
+                let scheduleText = sortedSchedule.map { $0.shortName }.joined(separator: ", ")
+                cell.detailTextLabel?.text = scheduleText
+                cell.detailTextLabel?.textColor = .gray
             }
-            cell.emojiLabel.text = emojis[indexPath.row]
-            return cell
-        } else if collectionView == colorCollectionView {
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ColorCell.identifier, for: indexPath) as? ColorCell else {
-                return UICollectionViewCell()
+        }
+            
+            // Устанавливаем серый фон для ячейки
+            cell.backgroundColor = UIColor(red: 0.9, green: 0.91, blue: 0.92, alpha: 0.3)
+            
+            // Настраиваем скругления для первой и последней ячейки
+            if indexPath.row == 0 {
+                // Первая ячейка - скругляем только верхние углы
+                cell.layer.cornerRadius = 16
+                cell.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+            } else if indexPath.row == 1 {
+                // Последняя ячейка - скругляем только нижние углы
+                cell.layer.cornerRadius = 16
+                cell.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
             }
-            cell.colorView.backgroundColor = colors[indexPath.row]
+            
+            // Убираем выделение при нажатии
+            cell.selectionStyle = .none
+            
             return cell
         }
-        return UICollectionViewCell()
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: 52, height: 52)
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-        return 5
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-        return 0
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        if collectionView == emojiCollectionView {
-            if let previousIndexPath = selectedEmojiIndexPath {
-                let previousCell = collectionView.cellForItem(at: previousIndexPath)
-                previousCell?.backgroundColor = .clear
+        
+        func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+            return 75
+        }
+        
+        func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+            if indexPath.row == 1 { // Последняя ячейка (Расписание)
+                cell.separatorInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: .greatestFiniteMagnitude)
             }
+        }
+        
+        func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+            tableView.deselectRow(at: indexPath, animated: true) // Снимаем выделение
             
-            // Выделяем новую ячейку
-            let cell = collectionView.cellForItem(at: indexPath)
-            cell?.layer.cornerRadius = 16
-            cell?.backgroundColor = .lightGray
+            guard indexPath.row == 1 else { return }
             
-            // Сохраняем indexPath новой выделенной ячейки
-            selectedEmojiIndexPath = indexPath
-            updateCreateButtonState()
-            
-        } else if collectionView == colorCollectionView {
-            // Снимаем выделение со старой ячейки
-            if let previousIndexPath = selectedColorIndexPath {
-                let previousCell = collectionView.cellForItem(at: previousIndexPath)
-                previousCell?.layer.borderWidth = 0
-            }
-            
-            // Выделяем новую ячейку
-            let cell = collectionView.cellForItem(at: indexPath)
-            cell?.layer.cornerRadius = 8
-            cell?.layer.borderWidth = 3
-            cell?.layer.borderColor = colors[indexPath.row].withAlphaComponent(0.3).cgColor
-            
-            // Сохраняем indexPath новой выделенной ячейки
-            selectedColorIndexPath = indexPath
-            updateCreateButtonState()
+            let scheduleViewController = ScheduleViewController()
+            scheduleViewController.delegate = self
+            navigationController?.pushViewController(scheduleViewController, animated: true)
         }
     }
     
-    func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
-        if collectionView == emojiCollectionView {
-            let cell = collectionView.cellForItem(at: indexPath)
-            cell?.backgroundColor = .clear
-        } else if collectionView == colorCollectionView {
-            let cell = collectionView.cellForItem(at: indexPath)
-            cell?.layer.borderWidth = 0
+    extension NewHabitViewController: ScheduleViewControllerDelegate {
+        func didConfirm(_ schedule: Set<DayOfWeek>) {
+            self.schedule = schedule
+            updateCreateButtonState()
+            buttonsTableView.reloadData()
         }
     }
-}
+    
+    extension NewHabitViewController: UITextFieldDelegate {
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            textField.resignFirstResponder()
+            return true
+        }
+    }
+    
+    extension NewHabitViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+        func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+            if collectionView == emojiCollectionView {
+                return emojis.count
+            } else if collectionView == colorCollectionView {
+                return colors.count
+            }
+            return 0
+        }
+        
+        func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+            if collectionView == emojiCollectionView {
+                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: EmojiCell.identifier, for: indexPath) as? EmojiCell else {
+                    return UICollectionViewCell()
+                }
+                cell.emojiLabel.text = emojis[indexPath.row]
+                return cell
+            } else if collectionView == colorCollectionView {
+                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ColorCell.identifier, for: indexPath) as? ColorCell else {
+                    return UICollectionViewCell()
+                }
+                cell.colorView.backgroundColor = colors[indexPath.row]
+                return cell
+            }
+            return UICollectionViewCell()
+        }
+        
+        func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+            return CGSize(width: 52, height: 52)
+        }
+        
+        func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
+            return 5
+        }
+        
+        func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
+            return 0
+        }
+        
+        func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+            if collectionView == emojiCollectionView {
+                if let previousIndexPath = selectedEmojiIndexPath {
+                    let previousCell = collectionView.cellForItem(at: previousIndexPath)
+                    previousCell?.backgroundColor = .clear
+                }
+                
+                // Выделяем новую ячейку
+                let cell = collectionView.cellForItem(at: indexPath)
+                cell?.layer.cornerRadius = 16
+                cell?.backgroundColor = .lightGray
+                
+                // Сохраняем indexPath новой выделенной ячейки
+                selectedEmojiIndexPath = indexPath
+                updateCreateButtonState()
+                
+            } else if collectionView == colorCollectionView {
+                // Снимаем выделение со старой ячейки
+                if let previousIndexPath = selectedColorIndexPath {
+                    let previousCell = collectionView.cellForItem(at: previousIndexPath)
+                    previousCell?.layer.borderWidth = 0
+                }
+                
+                // Выделяем новую ячейку
+                let cell = collectionView.cellForItem(at: indexPath)
+                cell?.layer.cornerRadius = 8
+                cell?.layer.borderWidth = 3
+                cell?.layer.borderColor = colors[indexPath.row].withAlphaComponent(0.3).cgColor
+                
+                // Сохраняем indexPath новой выделенной ячейки
+                selectedColorIndexPath = indexPath
+                updateCreateButtonState()
+            }
+        }
+        
+        func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
+            if collectionView == emojiCollectionView {
+                let cell = collectionView.cellForItem(at: indexPath)
+                cell?.backgroundColor = .clear
+            } else if collectionView == colorCollectionView {
+                let cell = collectionView.cellForItem(at: indexPath)
+                cell?.layer.borderWidth = 0
+            }
+        }
+    }
