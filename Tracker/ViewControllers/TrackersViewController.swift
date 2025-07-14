@@ -2,18 +2,84 @@ import UIKit
 
 final class TrackersViewController: UIViewController {
     
+    // MARK: - Core Data Stores
+    
+    private var trackerStore: TrackerStore?
+    private var categoryStore: TrackerCategoryStore?
+    private var recordStore: TrackerRecordStoreProtocol?
+    
+    // MARK: - Properties
+    
     private var visibleCategories: [TrackerCategory] = []
-    private var categories: [TrackerCategory] = []
-    private var completedTrackers: [TrackerRecord] = []
+    private var completedRecords: Set<TrackerRecord> = []
+    private var currentDate: Date = Date()
+    
+    // MARK: - UI Elements
+    
+    private lazy var datePicker: UIDatePicker = {
+        let picker = UIDatePicker()
+        picker.datePickerMode = .date
+        picker.preferredDatePickerStyle = .compact
+        picker.locale = Locale(identifier: "ru_RU")
+        picker.addTarget(self, action: #selector(datePickerValueChanged), for: .valueChanged)
+        // Нельзя выбрать будущую дату
+        picker.maximumDate = Date()
+        return picker
+    }()
+    
+    private lazy var collectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.backgroundColor = .white
+        return collectionView
+    }()
+    
+    private lazy var placeholderView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        
+        let imageView = UIImageView(image: UIImage(named: "star"))
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(imageView)
+        
+        let label = UILabel()
+        label.text = "Что будем отслеживать?"
+        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.textColor = .black
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        
+        NSLayoutConstraint.activate([
+            imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            label.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 8),
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
+        
+        return view
+    }()
+    
+    // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Создаем заголовок "Трекеры"
+        setupUI()
+        setupDelegates()
+        setupStores()
+        
+        // Устанавливаем текущую дату и обновляем данные
+        currentDate = datePicker.date
+        reloadVisibleCategories()
+    }
+    
+    // MARK: - Private Methods
+    
+    private func setupUI() {
         title = "Трекеры"
         navigationController?.navigationBar.prefersLargeTitles = true
         
-        // Создаем кнопку "+"
         let addButton = UIBarButtonItem(
             image: UIImage(systemName: "plus"),
             style: .plain,
@@ -24,203 +90,100 @@ final class TrackersViewController: UIViewController {
         navigationItem.leftBarButtonItem = addButton
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
         
-        // Настраиваем вид вкладки
         tabBarItem = UITabBarItem(
             title: "Трекеры",
             image: UIImage(systemName: "record.circle.fill"),
             selectedImage: nil
         )
         
+        view.backgroundColor = .white
         view.addSubview(collectionView)
-        
-        NSLayoutConstraint.activate([
-            // Прикрепляем верх коллекции к низу navigationBar
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            
-            // Прикрепляем низ коллекции к верху tabBar
-            collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            
-            // Прикрепляем левый и правый края к краям view
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-        ])
-        
-        collectionView.register(TrackerCell.self, forCellWithReuseIdentifier: TrackerCell.identifier)
-        
         view.addSubview(placeholderView)
         
         NSLayoutConstraint.activate([
+            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            
             placeholderView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             placeholderView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
-        
-        placeholderView.isHidden = true
-        
-        // Создаем несколько трекеров-привычек
-        let tracker1 = Tracker(
-            id: UUID(),
-            name: "Поливать растения",
-            color: .systemGreen,
-            emoji: "🪴",
-            schedule: [.wednesday, .friday]
-        )
-        
-        let tracker2 = Tracker(
-            id: UUID(),
-            name: "Читать по 15 минут",
-            color: .systemBlue,
-            emoji: "📚",
-            schedule: [.monday, .tuesday, .wednesday, .thursday, .friday]
-        )
-        
-        let tracker3 = Tracker(
-            id: UUID(),
-            name: "Сходить в зал",
-            color: .systemOrange,
-            emoji: "💪",
-            schedule: [.tuesday, .thursday, .saturday]
-        )
-        
-        // Создаем для них категории
-        let homeCategory = TrackerCategory(
-            title: "Домашние дела",
-            trackers: [tracker1]
-        )
-        
-        let selfCareCategory = TrackerCategory(
-            title: "Забота о себе",
-            trackers: [tracker2, tracker3]
-        )
-        
-        // Заполняем наш массив-хранилище этими категориями
-        self.categories = [homeCategory, selfCareCategory]
-        
+    }
+    
+    private func setupDelegates() {
         collectionView.dataSource = self
         collectionView.delegate = self
         
+        collectionView.register(TrackerCell.self, forCellWithReuseIdentifier: TrackerCell.identifier)
         collectionView.register(
             TrackerCategoryHeader.self,
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
             withReuseIdentifier: TrackerCategoryHeader.identifier
         )
-        
-        datePickerValueChanged()
     }
     
-    @objc private func addButtonTapped() {
-        // 1. Создаем экземпляр нашего нового контроллера
-        let newHabitViewController = NewHabitViewController()
+    private func setupStores() {
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return }
+        let context = appDelegate.persistentContainer.viewContext
         
-        newHabitViewController.delegate = self
+        let localTrackerStore = TrackerStore(context: context)
+        trackerStore = localTrackerStore
         
-        // 2. Оборачиваем его в собственный UINavigationController
-        let navigationController = UINavigationController(rootViewController: newHabitViewController)
+        categoryStore = TrackerCategoryStore(context: context)
+        categoryStore?.delegate = self
         
-        // 3. Показываем новый экран модально
-        present(navigationController, animated: true)
+        recordStore = TrackerRecordStore(context: context, trackerStore: localTrackerStore)
     }
     
-    @objc
-    private func datePickerValueChanged() {
-        let selectedDate = datePicker.date
+    private func reloadVisibleCategories() {
         let calendar = Calendar.current
-        // Получаем номер дня недели (1 - Вс, 2 - Пн, ..., 7 - Сб)
-        let weekDay = calendar.component(.weekday, from: selectedDate)
+        // Убираем время из currentDate, чтобы сравнение было только по дате
+        let filterDate = calendar.startOfDay(for: currentDate)
+        let filterWeekday = calendar.component(.weekday, from: filterDate)
         
-        // Фильтруем наши категории
-        visibleCategories = categories.compactMap { category in
+        // Обновляем список выполненных записей
+        completedRecords = Set(recordStore?.records ?? [])
+        
+        visibleCategories = categoryStore?.categories.compactMap { category in
             let trackers = category.trackers.filter { tracker in
-                // Сравниваем день недели с расписанием трекера
-                // Тут нужна будет небольшая функция для конвертации
-                return tracker.schedule.contains(convertWeekday(weekDay))
+                // Проверяем, что трекер запланирован на выбранный день недели
+                let scheduleContainsDay = tracker.schedule.contains { dayOfWeek in
+                    // 1 = Вс, 2 = Пн, ..., 7 = Сб
+                    // Наш enum: Пн = 0 ... Вс = 6
+                    let calendarDayIndex = dayOfWeek.calendarDayIndex()
+                    return calendarDayIndex == filterWeekday
+                }
+                return scheduleContainsDay
             }
             
             if trackers.isEmpty {
                 return nil
             }
             
-            return TrackerCategory(
-                title: category.title,
-                trackers: trackers
-            )
-        }
+            return TrackerCategory(title: category.title, trackers: trackers)
+        } ?? []
         
-        // Перезагружаем коллекцию, чтобы показать отфильтрованные данные
         collectionView.reloadData()
         placeholderView.isHidden = !visibleCategories.isEmpty
     }
     
-    private func convertWeekday(_ weekday: Int) -> DayOfWeek {
-        switch weekday {
-        case 1: return .sunday
-        case 2: return .monday
-        case 3: return .tuesday
-        case 4: return .wednesday
-        case 5: return .thursday
-        case 6: return .friday
-        default: return .saturday
-        }
+    // MARK: - Actions
+    
+    @objc private func addButtonTapped() {
+        let newHabitViewController = NewHabitViewController()
+        newHabitViewController.delegate = self
+        let navigationController = UINavigationController(rootViewController: newHabitViewController)
+        present(navigationController, animated: true)
     }
     
-    private lazy var datePicker: UIDatePicker = {
-        let picker = UIDatePicker()
-        picker.datePickerMode = .date
-        picker.preferredDatePickerStyle = .compact
-        picker.locale = Locale(identifier: "ru_RU")
-        picker.addTarget(self, action: #selector(datePickerValueChanged), for: .valueChanged)
-        return picker
-    }()
-    
-    private lazy var dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM.yy"
-        return formatter
-    }()
-    
-    private lazy var collectionView: UICollectionView = {
-        // Создаем "чертеж" (layout) для нашей коллекции
-        let layout = UICollectionViewFlowLayout()
-        
-        // Создаем саму коллекцию с этим "чертежом"
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Устанавливаем цвет фона, чтобы он не отличался от фона вью
-        collectionView.backgroundColor = .white
-        
-        return collectionView
-    }()
-    
-    private lazy var placeholderView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Добавляем картинку
-        let imageView = UIImageView(image: UIImage(named: "star"))
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(imageView)
-        
-        // Добавляем текст
-        let label = UILabel()
-        label.text = "Что будем отслеживать?"
-        label.font = .systemFont(ofSize: 12, weight: .medium)
-        label.textColor = .black
-        label.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(label)
-        
-        // Настраиваем констрейнты для картинки и текста внутри placeholderView
-        NSLayoutConstraint.activate([
-            imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            
-            label.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 8),
-            label.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-        ])
-        
-        return view
-    }()
+    @objc private func datePickerValueChanged() {
+        currentDate = datePicker.date
+        reloadVisibleCategories()
+    }
 }
+
+// MARK: - UICollectionViewDataSource
 
 extension TrackersViewController: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
@@ -238,37 +201,20 @@ extension TrackersViewController: UICollectionViewDataSource {
         
         let tracker = visibleCategories[indexPath.section].trackers[indexPath.row]
         
-        // Назначаем контроллер делегатом ячейки
+        // Проверяем, выполнена ли задача на ТЕКУЩУЮ выбранную дату
+        let isCompleted = completedRecords.contains { $0.trackerId == tracker.id && Calendar.current.isDate($0.date, inSameDayAs: currentDate) }
+        
+        // Считаем общее количество выполнений для этого трекера
+        let daysCount = completedRecords.filter { $0.trackerId == tracker.id }.count
+        
         cell.delegate = self
-        
-        // Проверяем, выполнен ли трекер сегодня
-        let isCompleted = completedTrackers.contains { $0.trackerId == tracker.id && isSameDay($0.date, datePicker.date) }
-        // Считаем, сколько раз всего был выполнен трекер
-        let completedDays = completedTrackers.filter { $0.trackerId == tracker.id }.count
-        
-        cell.configure(
-            with: tracker,
-            isCompleted: isCompleted,
-            days: completedDays,
-            indexPath: indexPath
-        )
+        cell.configure(with: tracker, isCompleted: isCompleted, days: daysCount, indexPath: indexPath)
         
         return cell
     }
     
-    private func isSameDay(_ date1: Date, _ date2: Date) -> Bool {
-        return Calendar.current.isDate(date1, inSameDayAs: date2)
-    }
-    
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        guard
-            kind == UICollectionView.elementKindSectionHeader,
-            let view = collectionView.dequeueReusableSupplementaryView(
-                ofKind: kind,
-                withReuseIdentifier: TrackerCategoryHeader.identifier,
-                for: indexPath
-            ) as? TrackerCategoryHeader
-        else {
+        guard let view = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: TrackerCategoryHeader.identifier, for: indexPath) as? TrackerCategoryHeader else {
             return UICollectionReusableView()
         }
         
@@ -277,31 +223,29 @@ extension TrackersViewController: UICollectionViewDataSource {
     }
 }
 
+// MARK: - UICollectionViewDelegateFlowLayout
+
 extension TrackersViewController: UICollectionViewDelegateFlowLayout {
+    // ... (весь код этого расширения остается без изменений)
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        // Задаем количество ячеек в ряду
         let cellsPerRow: CGFloat = 2
-        // Задаем отступы
         let leftInset: CGFloat = 16
         let rightInset: CGFloat = 16
         let cellSpacing: CGFloat = 9
         
-        // Считаем доступную ширину
         let paddingWidth = leftInset + rightInset + (cellsPerRow - 1) * cellSpacing
         let availableWidth = collectionView.frame.width - paddingWidth
-        
-        // Считаем ширину ячейки
         let cellWidth = availableWidth / cellsPerRow
         
         return CGSize(width: cellWidth, height: 148)
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-        return 9 // Горизонтальный отступ
+        return 9
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-        return 16 // Вертикальный отступ
+        return 16
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
@@ -313,54 +257,88 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
     }
 }
 
+// MARK: - Delegate Implementations
+
 extension TrackersViewController: TrackerCellDelegate {
+
     func completeTracker(id: UUID, at indexPath: IndexPath) {
-        // 1. Проверяем, не выбрана ли дата в будущем
-        let currentDate = Date()
-        let selectedDate = datePicker.date
+        print("--- Кнопка нажата! ID трекера: \(id) ---")
+        let calendar = Calendar.current
         
-        // Сравниваем только компоненты даты, без времени
-        if Calendar.current.compare(selectedDate, to: currentDate, toGranularity: .day) == .orderedDescending {
-            print("Нельзя отмечать трекеры для будущих дат!")
-            return // Выходим из функции, если дата в будущем
+        // 1. Проверяем, что дата не в будущем
+        if calendar.compare(currentDate, to: Date(), toGranularity: .day) == .orderedDescending {
+            return
         }
         
-        // 2. Ищем запись о выполнении в массиве completedTrackers
-        if let index = completedTrackers.firstIndex(where: { $0.trackerId == id && isSameDay($0.date, selectedDate) }) {
-            // 3. Если запись найдена — удаляем ее (снимаем отметку)
-            completedTrackers.remove(at: index)
+        // 2. Получаем дату с обнулённым временем
+        let dateOnly = calendar.startOfDay(for: currentDate)
+        
+        // 3. Создаём запись, которую будем добавлять или удалять, используя ТОЛЬКО ДАТУ
+        let record = TrackerRecord(trackerId: id, date: dateOnly)
+        
+        // 4. Выполняем или отменяем выполнение трекера
+        if completedRecords.contains(record) {
+            // Если уже выполнен -> удаляем запись
+            recordStore?.deleteRecord(for: id, on: dateOnly) { [weak self] error in
+                guard let self = self else { return }
+                if let error {
+                    print("Ошибка удаления записи: \(error)")
+                    return
+                }
+                self.completedRecords.remove(record)
+                self.collectionView.reloadItems(at: [indexPath])
+            }
         } else {
-            // 4. Если запись не найдена — создаем и добавляем ее (отмечаем выполнение)
-            let newRecord = TrackerRecord(trackerId: id, date: selectedDate)
-            completedTrackers.append(newRecord)
+            // Если не выполнен -> добавляем запись
+            recordStore?.addRecord(for: id, on: dateOnly) { [weak self] error in
+                guard let self = self else { return }
+                if let error {
+                    print("Ошибка добавления записи: \(error)")
+                    return
+                }
+                self.completedRecords.insert(record)
+                self.collectionView.reloadItems(at: [indexPath])
+            }
         }
-        
-        // 5. Обновляем только одну ячейку, на которую нажали
-        collectionView.reloadItems(at: [indexPath])
     }
 }
 
 extension TrackersViewController: NewHabitViewControllerDelegate {
+    // ... (этот метод остается без изменений)
     func didCreateTracker(_ tracker: Tracker, categoryTitle: String) {
-        var updatedCategories = categories
+        guard let categoryStore = self.categoryStore else { return }
         
-        // Проверяем, существует ли уже категория с таким названием
-        if let categoryIndex = updatedCategories.firstIndex(where: { $0.title == categoryTitle }) {
-            // Если категория найдена, добавляем новый трекер в ее массив
-            var updatedTrackers = updatedCategories[categoryIndex].trackers
-            updatedTrackers.append(tracker)
-            updatedCategories[categoryIndex] = TrackerCategory(title: categoryTitle, trackers: updatedTrackers)
+        let category: TrackerCategoryCoreData
+        if let existingCategory = categoryStore.fetchCategory(with: categoryTitle) {
+            category = existingCategory
         } else {
-            // Если категория не найдена, создаем новую с этим трекером
-            let newCategory = TrackerCategory(title: categoryTitle, trackers: [tracker])
-            updatedCategories.append(newCategory)
+            guard let newCategory = try? categoryStore.createCategory(with: categoryTitle) else {
+                return
+            }
+            category = newCategory
         }
         
-        // Обновляем наш основной массив категорий
-        self.categories = updatedCategories
-        
-        // Вызываем фильтрацию по дате, чтобы на экране отобразился новый трекер,
-        // если он соответствует текущему дню
-        datePickerValueChanged()
+        try? trackerStore?.createTracker(tracker, in: category)
+    }
+}
+
+extension TrackersViewController: TrackerCategoryStoreDelegate {
+    func storeDidUpdate() {
+        reloadVisibleCategories()
+    }
+}
+
+// Добавим хелпер для DayOfWeek, чтобы было проще работать с Calendar
+extension DayOfWeek {
+    func calendarDayIndex() -> Int {
+        switch self {
+        case .monday: return 2
+        case .tuesday: return 3
+        case .wednesday: return 4
+        case .thursday: return 5
+        case .friday: return 6
+        case .saturday: return 7
+        case .sunday: return 1
+        }
     }
 }
