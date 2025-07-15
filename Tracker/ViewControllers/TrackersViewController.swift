@@ -226,7 +226,6 @@ extension TrackersViewController: UICollectionViewDataSource {
 // MARK: - UICollectionViewDelegateFlowLayout
 
 extension TrackersViewController: UICollectionViewDelegateFlowLayout {
-    // ... (весь код этого расширения остается без изменений)
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let cellsPerRow: CGFloat = 2
         let leftInset: CGFloat = 16
@@ -260,23 +259,19 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
 // MARK: - Delegate Implementations
 
 extension TrackersViewController: TrackerCellDelegate {
-
+    
     func completeTracker(id: UUID, at indexPath: IndexPath) {
         print("--- Кнопка нажата! ID трекера: \(id) ---")
         let calendar = Calendar.current
         
-        // 1. Проверяем, что дата не в будущем
         if calendar.compare(currentDate, to: Date(), toGranularity: .day) == .orderedDescending {
             return
         }
         
-        // 2. Получаем дату с обнулённым временем
         let dateOnly = calendar.startOfDay(for: currentDate)
         
-        // 3. Создаём запись, которую будем добавлять или удалять, используя ТОЛЬКО ДАТУ
         let record = TrackerRecord(trackerId: id, date: dateOnly)
         
-        // 4. Выполняем или отменяем выполнение трекера
         if completedRecords.contains(record) {
             // Если уже выполнен -> удаляем запись
             recordStore?.deleteRecord(for: id, on: dateOnly) { [weak self] error in
@@ -289,7 +284,6 @@ extension TrackersViewController: TrackerCellDelegate {
                 self.collectionView.reloadItems(at: [indexPath])
             }
         } else {
-            // Если не выполнен -> добавляем запись
             recordStore?.addRecord(for: id, on: dateOnly) { [weak self] error in
                 guard let self = self else { return }
                 if let error {
@@ -304,7 +298,6 @@ extension TrackersViewController: TrackerCellDelegate {
 }
 
 extension TrackersViewController: NewHabitViewControllerDelegate {
-    // ... (этот метод остается без изменений)
     func didCreateTracker(_ tracker: Tracker, categoryTitle: String) {
         guard let categoryStore = self.categoryStore else { return }
         
@@ -328,7 +321,6 @@ extension TrackersViewController: TrackerCategoryStoreDelegate {
     }
 }
 
-// Добавим хелпер для DayOfWeek, чтобы было проще работать с Calendar
 extension DayOfWeek {
     func calendarDayIndex() -> Int {
         switch self {
