@@ -9,21 +9,32 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         let window = UIWindow(windowScene: windowScene)
         
-        let trackersViewController = TrackersViewController()
-        let navigationController = UINavigationController(rootViewController: trackersViewController)
-        let statisticsViewController = StatisticsViewController()
+        // Проверяем, был ли пройден онбординг
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         
-        statisticsViewController.tabBarItem = UITabBarItem(
-            title: "Статистика",
-            image: UIImage(systemName: "hare.fill"),
-            selectedImage: nil
-        )
+        if hasCompletedOnboarding {
+            // Если да, показываем главный экран
+            let trackersViewController = TrackersViewController()
+            let navigationController = UINavigationController(rootViewController: trackersViewController)
+            let statisticsViewController = StatisticsViewController()
+            
+            statisticsViewController.tabBarItem = UITabBarItem(
+                title: "Статистика",
+                image: UIImage(systemName: "hare.fill"),
+                selectedImage: nil
+            )
+            
+            let tabBarController = UITabBarController()
+            tabBarController.viewControllers = [navigationController, statisticsViewController]
+            window.rootViewController = tabBarController
+        } else {
+            // Если нет, показываем онбординг
+            window.rootViewController = OnboardingContainerViewController(
+                transitionStyle: .scroll,
+                navigationOrientation: .horizontal
+            )
+        }
         
-        let tabBarController = UITabBarController()
-        
-        tabBarController.viewControllers = [navigationController, statisticsViewController]
-        
-        window.rootViewController = tabBarController
         self.window = window
         window.makeKeyAndVisible()
     }

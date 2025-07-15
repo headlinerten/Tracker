@@ -74,7 +74,7 @@ final class ScheduleViewController: UIViewController {
 
 extension ScheduleViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 7 // 7 дней в неделе
+        return 7
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -84,7 +84,7 @@ extension ScheduleViewController: UITableViewDataSource, UITableViewDelegate {
         
         let switchView = UISwitch(frame: .zero)
         switchView.setOn(false, animated: false)
-        switchView.tag = indexPath.row // Добавляем tag, чтобы знать номер строки
+        switchView.tag = indexPath.row
         switchView.addTarget(self, action: #selector(switchChanged), for: .valueChanged)
         
         cell.accessoryView = switchView
