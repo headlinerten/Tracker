@@ -1,0 +1,68 @@
+// MARK: - TrackersViewController
+"trackers.title" = "Trackers";
+"trackers.searchField.placeholder" = "Search";
+"trackers.emptyState.text" = "What will you track?";
+"trackers.notFound.text" = "Nothing found";
+"trackers.plusButton.accessibilityLabel" = "Add tracker";
+
+// MARK: - NewHabitViewController & NewIrregularEventViewController
+"newHabit.title" = "New Habit";
+"newIrregularEvent.title" = "New Irregular Event";
+"creation.nameTextField.placeholder" = "Enter tracker name";
+"creation.categoryButton.title" = "Category";
+"creation.scheduleButton.title" = "Schedule";
+"creation.emoji.header" = "Emoji";
+"creation.color.header" = "Color";
+"creation.cancelButton.title" = "Cancel";
+"creation.createButton.title" = "Create";
+
+// MARK: - CategoryListViewController
+"category.title" = "Category";
+"category.emptyState.text" = "Habits and events can be\ngrouped together";
+"category.addCategoryButton.title" = "Add Category";
+
+// MARK: - NewCategoryViewController
+"newCategory.title" = "New Category";
+"newCategory.nameTextField.placeholder" = "Enter category name";
+"newCategory.doneButton.title" = "Done";
+
+// MARK: - ScheduleViewController
+"schedule.title" = "Schedule";
+"schedule.doneButton.title" = "Done";
+"schedule.day.monday" = "Monday";
+"schedule.day.tuesday" = "Tuesday";
+"schedule.day.wednesday" = "Wednesday";
+"schedule.day.thursday" = "Thursday";
+"schedule.day.friday" = "Friday";
+"schedule.day.saturday" = "Saturday";
+"schedule.day.sunday" = "Sunday";
+
+// MARK: - TabBar
+"tabBar.trackers.title" = "Trackers";
+"tabBar.statistics.title" = "Statistics";
+
+// MARK: - Onboarding
+"onboarding.firstPage.text" = "Track anything you want";
+"onboarding.secondPage.text" = "Even if it's not liters of water and yoga";
+"onboarding.actionButton.title" = "Wow, that's technology!";
+
+// MARK: - FiltersViewController
+"filters.button.title" = "Filters";
+
+// MARK: - Context Menu
+"contextMenu.edit" = "Edit";
+"contextMenu.delete" = "Delete";
+
+// MARK: - Filters
+"filters.button.title" = "Filters";
+"filter.allTrackers" = "All Trackers";
+"filter.todayTrackers" = "Trackers for Today";
+"filter.completed" = "Completed";
+"filter.uncompleted" = "Uncompleted";
+
+// MARK: - Statistics
+"statistics.placeholder.text" = "Nothing to analyze yet";
+"statistics.card.bestPeriod" = "Best Period";
+"statistics.card.perfectDays" = "Perfect Days";
+"statistics.card.completed" = "Trackers Completed";
+"statistics.card.average" = "Average Value";

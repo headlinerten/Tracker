@@ -6,11 +6,11 @@ final class OnboardingContainerViewController: UIPageViewController {
     private lazy var pages: [UIViewController] = {
         return [
             OnboardingPageViewController(
-                text: "Отслеживайте только то, что хотите",
+                text: NSLocalizedString("onboarding.firstPage.text", comment: "Text for the first onboarding screen"),
                 backgroundImage: UIImage(named: "OnboardingBlue")
             ),
             OnboardingPageViewController(
-                text: "Даже если это не литры воды и йога",
+                text: NSLocalizedString("onboarding.secondPage.text", comment: "Text for the second onboarding screen"),
                 backgroundImage: UIImage(named: "OnboardingRed")
             )
         ]
@@ -30,7 +30,7 @@ final class OnboardingContainerViewController: UIPageViewController {
     // Кнопка для перехода к основному приложению
     private lazy var actionButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Вот это технологии!", for: .normal)
+        button.setTitle(NSLocalizedString("onboarding.actionButton.title", comment: "Action button on onboarding screen"), for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         button.backgroundColor = .black
         button.setTitleColor(.white, for: .normal)
@@ -79,16 +79,17 @@ final class OnboardingContainerViewController: UIPageViewController {
         let trackersViewController = TrackersViewController()
         let navigationController = UINavigationController(rootViewController: trackersViewController)
         let statisticsViewController = StatisticsViewController()
+        let statisticsNavigationController = UINavigationController(rootViewController: statisticsViewController)
         
-        statisticsViewController.tabBarItem = UITabBarItem(
-            title: "Статистика",
+        statisticsNavigationController.tabBarItem = UITabBarItem(
+            title: NSLocalizedString("tabBar.statistics.title", comment: "Statistics tab bar item title"),
             image: UIImage(systemName: "hare.fill"),
             selectedImage: nil
         )
         
         let tabBarController = UITabBarController()
-        tabBarController.viewControllers = [navigationController, statisticsViewController]
-        
+        tabBarController.viewControllers = [navigationController, statisticsNavigationController]
+
         window.rootViewController = tabBarController
         window.makeKeyAndVisible()
         

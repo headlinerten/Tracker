@@ -84,6 +84,15 @@ final class TrackerCategoryStore: NSObject {
             schedule: schedule
         )
     }
+    
+    func deleteCategory(with title: String) throws {
+        guard let categoryToDelete = fetchCategory(with: title) else {
+            print("Категория для удаления не найдена")
+            return
+        }
+        context.delete(categoryToDelete)
+        try context.save()
+    }
 }
 
 extension TrackerCategoryStore: NSFetchedResultsControllerDelegate {

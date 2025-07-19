@@ -44,7 +44,7 @@ final class TrackerCell: UICollectionViewCell {
     private let counterLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 12, weight: .medium)
-        label.textColor = .black
+        label.textColor = .label
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -118,20 +118,10 @@ final class TrackerCell: UICollectionViewCell {
         emojiLabel.text = tracker.emoji
         nameLabel.text = tracker.name
         
-        let daysString: String
-        // Склоняем слово "день" в зависимости от числа
-        let lastDigit = days % 10
-        let lastTwoDigits = days % 100
-        if lastTwoDigits >= 11 && lastTwoDigits <= 19 {
-            daysString = "\(days) дней"
-        } else if lastDigit == 1 {
-            daysString = "\(days) день"
-        } else if lastDigit >= 2 && lastDigit <= 4 {
-            daysString = "\(days) дня"
-        } else {
-            daysString = "\(days) дней"
-        }
-        counterLabel.text = daysString
+        counterLabel.text = String.localizedStringWithFormat(
+            NSLocalizedString("days_plural", comment: "Number of days a tracker has been completed"),
+            days
+        )
         
         let image = isCompleted ? UIImage(systemName: "checkmark") : UIImage(systemName: "plus")
         plusButton.setImage(image, for: .normal)
