@@ -2,6 +2,7 @@ import UIKit
 
 protocol NewHabitViewControllerDelegate: AnyObject {
     func didCreateTracker(_ tracker: Tracker, categoryTitle: String)
+    func didUpdateTracker(_ tracker: Tracker, categoryTitle: String)
 }
 
 final class NewHabitViewController: UIViewController {
@@ -14,6 +15,11 @@ final class NewHabitViewController: UIViewController {
     private var selectedCategoryTitle: String?
     private var selectedEmojiIndexPath: IndexPath?
     private var selectedColorIndexPath: IndexPath?
+    private var trackerToEdit: Tracker?
+    private var categoryForEdit: String?
+    private var nameTextFieldTopConstraintCreation: NSLayoutConstraint?
+    private var nameTextFieldTopConstraintEditing: NSLayoutConstraint?
+    private var completedDays: Int
     
     // MARK: - UI Elements
     
@@ -129,6 +135,27 @@ final class NewHabitViewController: UIViewController {
         return button
     }()
     
+    private lazy var daysCounterLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 32, weight: .bold)
+        label.textColor = .label
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.isHidden = true // Скрыт по умолчанию
+        return label
+    }()
+    
+    init(trackerToEdit: Tracker? = nil, category: String? = nil, completedDays: Int = 0) {
+            self.trackerToEdit = trackerToEdit
+            self.categoryForEdit = category
+            self.completedDays = completedDays
+            super.init(nibName: nil, bundle: nil)
+        }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
@@ -140,6 +167,13 @@ final class NewHabitViewController: UIViewController {
         setupLayout()
         updateCreateButtonState()
         updateCancelButtonBorder()
+        
+        if trackerToEdit != nil {
+                setupEditMode()
+                nameTextFieldTopConstraintEditing?.isActive = true
+            } else {
+                nameTextFieldTopConstraintCreation?.isActive = true
+            }
     }
     
     // MARK: - Actions
@@ -158,17 +192,29 @@ final class NewHabitViewController: UIViewController {
         let color = colors[selectedColorIndexPath.row]
         let emoji = emojis[selectedEmojiIndexPath.row]
         
-        let newTracker = Tracker(
-            id: UUID(),
-            name: name,
-            color: color,
-            emoji: emoji,
-            schedule: self.schedule
-        )
-        
-        delegate?.didCreateTracker(newTracker, categoryTitle: category)
-        dismiss(animated: true)
-    }
+        if var trackerToEdit = self.trackerToEdit {
+                // Режим редактирования: обновляем свойства и вызываем новый делегат
+                trackerToEdit.name = name
+                trackerToEdit.color = color
+                trackerToEdit.emoji = emoji
+                trackerToEdit.schedule = self.schedule
+                
+                delegate?.didUpdateTracker(trackerToEdit, categoryTitle: category)
+                
+            } else {
+                // Режим создания: вызываем старый делегат
+                let newTracker = Tracker(
+                    id: UUID(),
+                    name: name,
+                    color: color,
+                    emoji: emoji,
+                    schedule: self.schedule
+                )
+                delegate?.didCreateTracker(newTracker, categoryTitle: category)
+            }
+            
+            dismiss(animated: true)
+        }
     
     @objc private func textFieldDidChange() {
         updateCreateButtonState()
@@ -196,12 +242,19 @@ final class NewHabitViewController: UIViewController {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
         
-        [nameTextField, buttonsTableView, emojiHeaderLabel, emojiCollectionView,
-         colorHeaderLabel, colorCollectionView, cancelButton, createButton].forEach {
-            contentView.addSubview($0)
-        }
+        [daysCounterLabel, nameTextField, buttonsTableView, emojiHeaderLabel, emojiCollectionView,
+             colorHeaderLabel, colorCollectionView, cancelButton, createButton].forEach {
+                    contentView.addSubview($0)
+                }
         
+        nameTextFieldTopConstraintCreation = nameTextField.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24)
+            nameTextFieldTopConstraintEditing = nameTextField.topAnchor.constraint(equalTo: daysCounterLabel.bottomAnchor, constant: 40)
+            
         NSLayoutConstraint.activate([
+            
+            daysCounterLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
+                        daysCounterLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+                        
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -213,7 +266,6 @@ final class NewHabitViewController: UIViewController {
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             
-            nameTextField.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
             nameTextField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             nameTextField.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             nameTextField.heightAnchor.constraint(equalToConstant: 75),
@@ -258,11 +310,45 @@ final class NewHabitViewController: UIViewController {
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-
+        
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
             updateCancelButtonBorder()
         }
     }
+    
+    private func setupEditMode() {
+         guard let tracker = trackerToEdit, let category = categoryForEdit else { return }
+         
+         title = "Редактирование привычки"
+         
+         // Показываем и настраиваем счетчик дней
+         daysCounterLabel.isHidden = false
+        daysCounterLabel.text = String.localizedStringWithFormat(
+                    NSLocalizedString("days_plural", comment: "Number of days completed"),
+                    self.completedDays
+                )
+         
+         // Заполняем поля данными трекера
+         nameTextField.text = tracker.name
+         selectedCategoryTitle = category
+         schedule = tracker.schedule
+         
+         // Выбираем emoji
+         if let emojiIndex = emojis.firstIndex(of: tracker.emoji) {
+             selectedEmojiIndexPath = IndexPath(row: emojiIndex, section: 0)
+         }
+         
+         // Выбираем цвет
+         if let colorIndex = colors.firstIndex(where: { $0.hexString == tracker.color.hexString }) {
+             selectedColorIndexPath = IndexPath(row: colorIndex, section: 0)
+         }
+         
+         createButton.setTitle("Сохранить", for: .normal)
+         
+         // Обновляем состояние UI
+         buttonsTableView.reloadData()
+         updateCreateButtonState()
+     }
 }
 
 // MARK: - UITableViewDataSource, UITableViewDelegate
@@ -409,5 +495,15 @@ extension NewHabitViewController: UICollectionViewDataSource, UICollectionViewDe
             selectedColorIndexPath = indexPath
         }
         updateCreateButtonState()
+    }
+}
+
+extension UIColor {
+    var hexString: String {
+        let components = cgColor.components
+        let r: CGFloat = components?[0] ?? 0.0
+        let g: CGFloat = components?[1] ?? 0.0
+        let b: CGFloat = components?[2] ?? 0.0
+        return String(format: "#%02lX%02lX%02lX", lroundf(Float(r * 255)), lroundf(Float(g * 255)), lroundf(Float(b * 255)))
     }
 }

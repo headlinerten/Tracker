@@ -65,6 +65,7 @@ final class StatisticsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        recordStore?.delegate = self
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -149,7 +150,7 @@ final class StatisticsViewController: UIViewController {
         let bestPeriod = calculateBestStreak(from: Array(recordsByDate.keys))
         
         // Среднее значение - среднее количество выполненных трекеров в день
-        let averageValue = perfectDays > 0 ? completedTrackers / perfectDays : 0
+        let averageValue = perfectDays > 0 ? Int(round(Double(completedTrackers) / Double(perfectDays))) : 0
         
         return (bestPeriod, perfectDays, completedTrackers, averageValue)
     }
@@ -176,5 +177,11 @@ final class StatisticsViewController: UIViewController {
         }
         
         return bestStreak
+    }
+}
+
+extension StatisticsViewController: TrackerRecordStoreDelegate {
+    func storeDidUpdate() {
+        updateUI()
     }
 }

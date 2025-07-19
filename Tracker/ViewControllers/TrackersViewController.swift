@@ -66,7 +66,7 @@ final class TrackersViewController: UIViewController {
         let label = UILabel()
         label.text = NSLocalizedString("trackers.emptyState.text", comment: "Text for the empty state placeholder on the main screen")
         label.font = .systemFont(ofSize: 12, weight: .medium)
-        label.textColor = .black
+        label.textColor = .label
         label.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(label)
         
@@ -359,6 +359,7 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         
         let tracker = visibleCategories[indexPath.section].trackers[indexPath.row]
+        let categoryTitle = visibleCategories[indexPath.section].title
         
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] suggestedActions in
             guard let self = self else { return UIMenu() }
@@ -367,6 +368,7 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
             let editAction = UIAction(
                 title: NSLocalizedString("contextMenu.edit", comment: "Context menu edit action"),
             ) { action in
+                self.editTracker(tracker, categoryTitle: categoryTitle)
                 AnalyticsService.report(event: "click", screen: "Main", item: "edit")
                 self.reportAnalytics(event: "click", item: "edit")
                 print("EDIT TAPPED FOR TRACKER: \(tracker.name)")
@@ -377,6 +379,7 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
                 title: NSLocalizedString("contextMenu.delete", comment: "Context menu delete action"),
                 attributes: .destructive
             ) { action in
+                self.showDeleteConfirmation(for: tracker.id)
                 AnalyticsService.report(event: "click", screen: "Main", item: "delete")
                 self.reportAnalytics(event: "click", item: "delete")
                 print("DELETE TAPPED FOR TRACKER: \(tracker.name)")
@@ -431,6 +434,7 @@ extension TrackersViewController: TrackerCellDelegate {
 }
 
 extension TrackersViewController: NewHabitViewControllerDelegate {
+    
     func didCreateTracker(_ tracker: Tracker, categoryTitle: String) {
         guard let categoryStore = self.categoryStore else { return }
         
@@ -445,6 +449,15 @@ extension TrackersViewController: NewHabitViewControllerDelegate {
         }
         
         try? trackerStore?.createTracker(tracker, in: category)
+    }
+    
+    func didUpdateTracker(_ tracker: Tracker, categoryTitle: String) {
+        do {
+            try trackerStore?.updateTracker(tracker, newCategoryTitle: categoryTitle)
+            reloadVisibleCategories()
+        } catch {
+            print("Ошибка при обновлении трекера: \(error)")
+        }
     }
 }
 
@@ -486,5 +499,58 @@ extension TrackersViewController: FiltersViewControllerDelegate {
 extension TrackersViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
         reloadVisibleCategories()
+    }
+}
+
+extension TrackersViewController {
+
+    private func editTracker(_ tracker: Tracker, categoryTitle: String) {
+        AnalyticsService.report(event: "click", screen: "Main", item: "edit")
+        print("EDIT TAPPED FOR TRACKER: \(tracker.name)")
+        
+        let daysCount = completedRecords.filter { $0.trackerId == tracker.id }.count
+        
+        let editHabitVC = NewHabitViewController(
+                trackerToEdit: tracker,
+                category: categoryTitle,
+                completedDays: daysCount
+            )
+            editHabitVC.delegate = self
+                
+                let navigationController = UINavigationController(rootViewController: editHabitVC)
+                present(navigationController, animated: true)
+    }
+
+    private func showDeleteConfirmation(for trackerId: UUID) {
+        AnalyticsService.report(event: "click", screen: "Main", item: "delete")
+        
+        let alert = UIAlertController(
+            title: nil,
+            message: "Уверены что хотите удалить трекер?",
+            preferredStyle: .actionSheet
+        )
+        
+        let deleteAction = UIAlertAction(
+            title: "Удалить",
+            style: .destructive
+        ) { [weak self] _ in
+            self?.deleteTracker(withId: trackerId)
+        }
+        
+        let cancelAction = UIAlertAction(title: "Отменить", style: .cancel)
+        
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
+
+    private func deleteTracker(withId id: UUID) {
+        do {
+            try self.trackerStore?.deleteTracker(with: id)
+            self.reloadVisibleCategories()
+        } catch {
+            print("Не удалось удалить трекер: \(error)")
+        }
     }
 }
