@@ -24,8 +24,29 @@ enum DayOfWeek: String, CaseIterable {
 
 struct Tracker {
     let id: UUID
-    let name: String
-    let color: UIColor
-    let emoji: String
-    let schedule: Set<DayOfWeek>
+    var name: String
+    var color: UIColor
+    var emoji: String
+    var schedule: Set<DayOfWeek>
+}
+
+extension DayOfWeek {
+    var localizedName: String {
+        switch self {
+        case .monday:
+            return NSLocalizedString("schedule.day.monday", comment: "Monday")
+        case .tuesday:
+            return NSLocalizedString("schedule.day.tuesday", comment: "Tuesday")
+        case .wednesday:
+            return NSLocalizedString("schedule.day.wednesday", comment: "Wednesday")
+        case .thursday:
+            return NSLocalizedString("schedule.day.thursday", comment: "Thursday")
+        case .friday:
+            return NSLocalizedString("schedule.day.friday", comment: "Friday")
+        case .saturday:
+            return NSLocalizedString("schedule.day.saturday", comment: "Saturday")
+        case .sunday:
+            return NSLocalizedString("schedule.day.sunday", comment: "Sunday")
+        }
+    }
 }

@@ -25,7 +25,7 @@ final class CategoryListViewController: UIViewController {
         paragraphStyle.alignment = .center
         
         let attributedString = NSAttributedString(
-            string: "Привычки и события можно\nобъединить по смыслу",
+            string: NSLocalizedString("category.emptyState.text", comment: "Text for empty state on category screen"),
             attributes: [
                 .font: UIFont.systemFont(ofSize: 12, weight: .medium),
                 .foregroundColor: UIColor.black,
@@ -70,7 +70,7 @@ final class CategoryListViewController: UIViewController {
     
     private lazy var addCategoryButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Добавить категорию", for: .normal)
+        button.setTitle(NSLocalizedString("category.addCategoryButton.title", comment: "Add category button title"), for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         button.backgroundColor = .black
         button.setTitleColor(.white, for: .normal)
@@ -85,8 +85,10 @@ final class CategoryListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = "Категория"
-        view.backgroundColor = .white
+        navigationItem.hidesBackButton = true
+        
+        title = NSLocalizedString("category.title", comment: "Category selection screen title")
+        view.backgroundColor = .systemBackground
         
         viewModel = CategoryViewModel()
         
@@ -165,7 +167,7 @@ extension CategoryListViewController: UITableViewDataSource, UITableViewDelegate
         let cell = tableView.dequeueReusableCell(withIdentifier: "categoryCell", for: indexPath)
         let category = categories[indexPath.row]
         cell.textLabel?.text = category.title
-        cell.backgroundColor = UIColor(red: 0.9, green: 0.91, blue: 0.92, alpha: 0.3) // Фон для ячеек
+        cell.backgroundColor = .background
         cell.selectionStyle = .none
         
         cell.layer.maskedCorners = []

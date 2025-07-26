@@ -1,0 +1,68 @@
+// MARK: - TrackersViewController
+"trackers.title" = "Трекеры";
+"trackers.searchField.placeholder" = "Поиск";
+"trackers.emptyState.text" = "Что будем отслеживать?";
+"trackers.notFound.text" = "Ничего не найдено";
+"trackers.plusButton.accessibilityLabel" = "Добавить трекер";
+
+// MARK: - NewHabitViewController & NewIrregularEventViewController
+"newHabit.title" = "Новая привычка";
+"newIrregularEvent.title" = "Новое нерегулярное событие";
+"creation.nameTextField.placeholder" = "Введите название трекера";
+"creation.categoryButton.title" = "Категория";
+"creation.scheduleButton.title" = "Расписание";
+"creation.emoji.header" = "Emoji";
+"creation.color.header" = "Цвет";
+"creation.cancelButton.title" = "Отменить";
+"creation.createButton.title" = "Создать";
+
+// MARK: - CategoryListViewController
+"category.title" = "Категория";
+"category.emptyState.text" = "Привычки и события можно\nобъединить по смыслу";
+"category.addCategoryButton.title" = "Добавить категорию";
+
+// MARK: - NewCategoryViewController
+"newCategory.title" = "Новая категория";
+"newCategory.nameTextField.placeholder" = "Введите название категории";
+"newCategory.doneButton.title" = "Готово";
+
+// MARK: - ScheduleViewController
+"schedule.title" = "Расписание";
+"schedule.doneButton.title" = "Готово";
+"schedule.day.monday" = "Понедельник";
+"schedule.day.tuesday" = "Вторник";
+"schedule.day.wednesday" = "Среда";
+"schedule.day.thursday" = "Четверг";
+"schedule.day.friday" = "Пятница";
+"schedule.day.saturday" = "Суббота";
+"schedule.day.sunday" = "Воскресенье";
+
+// MARK: - TabBar
+"tabBar.trackers.title" = "Трекеры";
+"tabBar.statistics.title" = "Статистика";
+
+// MARK: - Onboarding
+"onboarding.firstPage.text" = "Отслеживайте только то, что хотите";
+"onboarding.secondPage.text" = "Даже если это не литры воды и йога";
+"onboarding.actionButton.title" = "Вот это технологии!";
+
+// MARK: - FiltersViewController
+"filters.button.title" = "Фильтры";
+
+// MARK: - Context Menu
+"contextMenu.edit" = "Редактировать";
+"contextMenu.delete" = "Удалить";
+
+// MARK: - Filters
+"filters.button.title" = "Фильтры";
+"filter.allTrackers" = "Все трекеры";
+"filter.todayTrackers" = "Трекеры на сегодня";
+"filter.completed" = "Завершённые";
+"filter.uncompleted" = "Незавершённые";
+
+// MARK: - Statistics
+"statistics.placeholder.text" = "Анализировать пока нечего";
+"statistics.card.bestPeriod" = "Лучший период";
+"statistics.card.perfectDays" = "Идеальные дни";
+"statistics.card.completed" = "Трекеров завершено";
+"statistics.card.average" = "Среднее значение";

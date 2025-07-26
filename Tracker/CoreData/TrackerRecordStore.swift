@@ -5,13 +5,19 @@ typealias TrackerRecordStoreCompletion = (Error?) -> Void
 
 protocol TrackerRecordStoreProtocol {
     var records: [TrackerRecord] { get }
+    var delegate: TrackerRecordStoreDelegate? { get set }
     func addRecord(for trackerId: UUID, on date: Date, completion: TrackerRecordStoreCompletion)
     func deleteRecord(for trackerId: UUID, on date: Date, completion: TrackerRecordStoreCompletion)
+}
+
+protocol TrackerRecordStoreDelegate: AnyObject {
+    func storeDidUpdate()
 }
 
 final class TrackerRecordStore: NSObject {
     private let context: NSManagedObjectContext
     private let trackerStore: TrackerStore
+    weak var delegate: TrackerRecordStoreDelegate?
     
     private lazy var fetchedResultsController: NSFetchedResultsController<TrackerRecordCoreData> = {
         let fetchRequest = NSFetchRequest<TrackerRecordCoreData>(entityName: "TrackerRecordCoreData")
@@ -23,6 +29,7 @@ final class TrackerRecordStore: NSObject {
             sectionNameKeyPath: nil,
             cacheName: nil
         )
+        controller.delegate = self
         try? controller.performFetch()
         return controller
     }()
@@ -89,5 +96,11 @@ extension TrackerRecordStore: TrackerRecordStoreProtocol {
     
     enum StoreError: Error {
         case trackerNotFound
+    }
+}
+
+extension TrackerRecordStore: NSFetchedResultsControllerDelegate {
+    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        delegate?.storeDidUpdate()
     }
 }
